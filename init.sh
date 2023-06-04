@@ -43,7 +43,7 @@ cat $HOME/.xtechain/config/genesis.json | jq '.consensus_params["block"]["max_ga
 xted add-genesis-account $KEY 100000000000000000000000000axte --keyring-backend $KEYRING
 
 # Sign genesis transaction
-xted gentx $KEY 100000000000000000000000000axte --keyring-backend $KEYRING --chain-id $CHAINID
+xted gentx $KEY 1000000000000000000axte --keyring-backend $KEYRING --chain-id $CHAINID
 
 # Collect genesis tx
 xted collect-gentxs
