@@ -127,6 +127,7 @@ func init() {
 	}
 
 	DefaultNodeHome = filepath.Join(userHomeDir, ".xtechain")
+
 }
 
 const appName = "xted"

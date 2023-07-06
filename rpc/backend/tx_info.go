@@ -2,6 +2,7 @@ package backend
 
 import (
 	"fmt"
+	"github.com/ethereum/go-ethereum/common/math"
 	"math/big"
 
 	errorsmod "cosmossdk.io/errors"
@@ -53,6 +54,9 @@ func (b *Backend) GetTransactionByHash(txHash common.Hash) (*rpctypes.RPCTransac
 		msgs := b.EthMsgsFromTendermintBlock(block, blockRes)
 		for i := range msgs {
 			if msgs[i].Hash == hexTx {
+				if i > math.MaxInt32 {
+					return nil, errors.New("tx index overflow")
+				}
 				res.EthTxIndex = int32(i)
 				break
 			}
@@ -69,11 +73,13 @@ func (b *Backend) GetTransactionByHash(txHash common.Hash) (*rpctypes.RPCTransac
 		b.logger.Error("failed to fetch Base Fee from prunned block. Check node prunning configuration", "height", blockRes.Height, "error", err)
 	}
 
+	height := uint64(res.Height)
+	index := uint64(res.EthTxIndex)
 	return rpctypes.NewTransactionFromMsg(
 		msg,
 		common.BytesToHash(block.BlockID.Hash.Bytes()),
-		uint64(res.Height),
-		uint64(res.EthTxIndex),
+		height,
+		index,
 		baseFee,
 		b.chainID,
 	)
@@ -121,7 +127,7 @@ func (b *Backend) getTransactionByHashPending(txHash common.Hash) (*rpctypes.RPC
 func (b *Backend) GetGasUsed(res *xte.TxResult, price *big.Int, gas uint64) uint64 {
 	// patch gasUsed if tx is reverted and happened before height on which fixed was introduced
 	// to return real gas charged
-	// more info at https://github.com/xtelabs/xtechain/pull/1557
+
 	if res.Failed && res.Height < b.cfg.JSONRPC.FixRevertGasRefundHeight {
 		return new(big.Int).Mul(price, new(big.Int).SetUint64(gas)).Uint64()
 	}
@@ -184,7 +190,8 @@ func (b *Backend) GetTransactionReceipt(hash common.Hash) (map[string]interface{
 	}
 
 	// parse tx logs from events
-	logs, err := TxLogsFromEvents(blockRes.TxsResults[res.TxIndex].Events, int(res.MsgIndex))
+	msgIndex := int(res.MsgIndex)
+	logs, err := TxLogsFromEvents(blockRes.TxsResults[res.TxIndex].Events, msgIndex)
 	if err != nil {
 		b.logger.Debug("failed to parse logs", "hash", hexTx, "error", err.Error())
 	}
@@ -308,8 +315,9 @@ func (b *Backend) GetTxByEthHash(hash common.Hash) (*xte.TxResult, error) {
 
 // GetTxByTxIndex uses `/tx_query` to find transaction by tx index of valid ethereum txs
 func (b *Backend) GetTxByTxIndex(height int64, index uint) (*xte.TxResult, error) {
+	int32Index := int32(index)
 	if b.indexer != nil {
-		return b.indexer.GetByBlockAndIndex(height, int32(index))
+		return b.indexer.GetByBlockAndIndex(height, int32Index)
 	}
 
 	// fallback to tendermint tx indexer
@@ -393,11 +401,13 @@ func (b *Backend) GetTransactionByBlockAndIndex(block *tmrpctypes.ResultBlock, i
 		b.logger.Error("failed to fetch Base Fee from prunned block. Check node prunning configuration", "height", block.Block.Height, "error", err)
 	}
 
+	height := uint64(block.Block.Height)
+	index := uint64(idx)
 	return rpctypes.NewTransactionFromMsg(
 		msg,
 		common.BytesToHash(block.Block.Hash()),
-		uint64(block.Block.Height),
-		uint64(idx),
+		height,
+		index,
 		baseFee,
 		b.chainID,
 	)

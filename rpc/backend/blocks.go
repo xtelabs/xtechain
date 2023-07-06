@@ -370,11 +370,13 @@ func (b *Backend) RPCBlockFromTendermintBlock(
 		}
 
 		tx := ethMsg.AsTransaction()
+		height := uint64(block.Height)
+		index := uint64(txIndex)
 		rpcTx, err := rpctypes.NewRPCTransaction(
 			tx,
 			common.BytesToHash(block.Hash()),
-			uint64(block.Height),
-			uint64(txIndex),
+			height,
+			index,
 			baseFee,
 			b.chainID,
 		)

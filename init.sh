@@ -110,4 +110,4 @@ fi
 
 # Start the node (remove the --pruning=nothing flag if historical queries are not needed)
 #xted start --json-rpc.allow-unprotected-txs --metrics --evm.tracer=json $TRACE --log_level $LOGLEVEL --minimum-gas-prices=0.0001axte --json-rpc.api eth,txpool,personal,net,debug,web3,miner --json-rpc.enable --api.enable
-xted start --json-rpc.address 0.0.0.0:8545 --json-rpc.ws-address 0.0.0.0:8546 --json-rpc.allow-unprotected-txs --metrics --pruning=nothing --evm.tracer=json $TRACE --log_level $LOGLEVEL --minimum-gas-prices=0.0001axte --json-rpc.api eth,txpool,personal,net,debug,web3 --json-rpc.enable --api.enable
+xted start --json-rpc.address 0.0.0.0:8545 --json-rpc.ws-address 0.0.0.0:8546 --json-rpc.allow-unprotected-txs --metrics "$TRACE" --log_level $LOGLEVEL --minimum-gas-prices=0.0001axte --json-rpc.api eth,txpool,personal,net,debug,web3 --api.enable --json-rpc.enable --home "$HOMEDIR"
