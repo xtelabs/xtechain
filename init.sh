@@ -61,7 +61,7 @@ if [[ $overwrite == "y" || $overwrite == "Y" ]]; then
     xted add-genesis-account $KEY 100000000000000000000000000axte --keyring-backend $KEYRING --home "$HOMEDIR"
 
     # Sign genesis transaction
-    xted gentx $KEY 1000000000000000000axte --keyring-backend $KEYRING --chain-id $CHAINID --home "$HOMEDIR"
+    xted gentx $KEY 100000000000000000000axte --keyring-backend $KEYRING --chain-id $CHAINID --home "$HOMEDIR"
 
     # Collect genesis tx
     xted collect-gentxs --home "$HOMEDIR"
@@ -109,5 +109,4 @@ if [[ $overwrite == "y" || $overwrite == "Y" ]]; then
 fi
 
 # Start the node (remove the --pruning=nothing flag if historical queries are not needed)
-#xted start --json-rpc.allow-unprotected-txs --metrics --evm.tracer=json $TRACE --log_level $LOGLEVEL --minimum-gas-prices=0.0001axte --json-rpc.api eth,txpool,personal,net,debug,web3,miner --json-rpc.enable --api.enable
 xted start --json-rpc.address 0.0.0.0:8545 --json-rpc.ws-address 0.0.0.0:8546 --json-rpc.allow-unprotected-txs --metrics "$TRACE" --log_level $LOGLEVEL --minimum-gas-prices=0.0001axte --json-rpc.api eth,txpool,personal,net,debug,web3 --api.enable --json-rpc.enable --home "$HOMEDIR"
