@@ -14,7 +14,9 @@ TRACE="--trace"
 command -v jq > /dev/null 2>&1 || { echo >&2 "jq not installed. More info: https://stedolan.github.io/jq/download/"; exit 1; }
 
 HOMEDIR="$HOME/.xtechain"
-#CONFIG="$HOMEDIR"/config/config.toml
+GENESIS=$HOMEDIR/config/genesis.json
+TMP_GENESIS=$HOMEDIR/config/tmp_genesis.json
+CONFIG=$HOMEDIR/config/config.toml
 #APP_TOML=$HOMEDIR/config/app.toml
 
 export GO111MODULE=on
@@ -49,13 +51,14 @@ if [[ $overwrite == "y" || $overwrite == "Y" ]]; then
     xted init $MONIKER --chain-id $CHAINID --home "$HOMEDIR"
 
     # Change parameter token denominations to axte
-    cat "$HOMEDIR"/config/genesis.json | jq '.app_state["staking"]["params"]["bond_denom"]="axte"' > "$HOMEDIR"/config/tmp_genesis.json && mv "$HOMEDIR"/config/tmp_genesis.json "$HOMEDIR"/config/genesis.json
-    cat "$HOMEDIR"/config/genesis.json | jq '.app_state["crisis"]["constant_fee"]["denom"]="axte"' > "$HOMEDIR"/config/tmp_genesis.json && mv "$HOMEDIR"/config/tmp_genesis.json "$HOMEDIR"/config/genesis.json
-    cat "$HOMEDIR"/config/genesis.json | jq '.app_state["gov"]["deposit_params"]["min_deposit"][0]["denom"]="axte"' > "$HOMEDIR"/config/tmp_genesis.json && mv "$HOMEDIR"/config/tmp_genesis.json "$HOMEDIR"/config/genesis.json
-    cat "$HOMEDIR"/config/genesis.json | jq '.app_state["mint"]["params"]["mint_denom"]="axte"' > "$HOMEDIR"/config/tmp_genesis.json && mv "$HOMEDIR"/config/tmp_genesis.json "$HOMEDIR"/config/genesis.json
+    jq '.app_state["staking"]["params"]["bond_denom"]="axte"' "$GENESIS" >"$TMP_GENESIS" && mv "$TMP_GENESIS" "$GENESIS"
+    jq '.app_state["crisis"]["constant_fee"]["denom"]="axte"' "$GENESIS" >"$TMP_GENESIS" && mv "$TMP_GENESIS" "$GENESIS"
+    jq '.app_state["gov"]["deposit_params"]["min_deposit"][0]["denom"]="axte"' "$GENESIS" >"$TMP_GENESIS" && mv "$TMP_GENESIS" "$GENESIS"
+    jq '.app_state["evm"]["params"]["evm_denom"]="axte"' "$GENESIS" >"$TMP_GENESIS" && mv "$TMP_GENESIS" "$GENESIS"
+    jq '.app_state["mint"]["params"]["mint_denom"]="axte"' "$GENESIS" >"$TMP_GENESIS" && mv "$TMP_GENESIS" "$GENESIS"
 
     # Set gas limit in genesis
-    cat "$HOMEDIR"/config/genesis.json | jq '.consensus_params["block"]["max_gas"]="20000000"' > "$HOMEDIR"/config/tmp_genesis.json && mv "$HOMEDIR"/config/tmp_genesis.json "$HOMEDIR"/config/genesis.json
+    jq '.consensus_params["block"]["max_gas"]="20000000"' "$GENESIS" >"$TMP_GENESIS" && mv "$TMP_GENESIS" "$GENESIS"
 
     # Allocate genesis accounts (cosmos formatted addresses)
     xted add-genesis-account $KEY 100000000000000000000000000axte --keyring-backend $KEYRING --home "$HOMEDIR"
@@ -71,39 +74,39 @@ if [[ $overwrite == "y" || $overwrite == "Y" ]]; then
 
     # disable produce empty block and enable prometheus metrics
     if [[ "$OSTYPE" == "darwin"* ]]; then
-        sed -i '' 's/create_empty_blocks = true/create_empty_blocks = false/g' "$HOMEDIR"/config/config.toml
-        sed -i '' 's/prometheus = false/prometheus = true/' "$HOMEDIR"/config/config.toml
-        sed -i '' 's/prometheus-retention-time = 0/prometheus-retention-time  = 1000000000000/g' "$HOMEDIR"/config/app.toml
-        sed -i '' 's/enabled = false/enabled = true/g' "$HOMEDIR"/config/app.toml
+        sed -i '' 's/create_empty_blocks = true/create_empty_blocks = false/g' "$CONFIG"
+        sed -i '' 's/prometheus = false/prometheus = true/' "$CONFIG"
+        sed -i '' 's/prometheus-retention-time = 0/prometheus-retention-time  = 1000000000000/g' "$CONFIG"
+        sed -i '' 's/enabled = false/enabled = true/g' "$CONFIG"
     else
-        sed -i 's/create_empty_blocks = true/create_empty_blocks = false/g' "$HOMEDIR"/config/config.toml
-        sed -i 's/prometheus = false/prometheus = true/' "$HOMEDIR"/config/config.toml
-        sed -i 's/prometheus-retention-time  = "0"/prometheus-retention-time  = "1000000000000"/g' "$HOMEDIR"/config/app.toml
-        sed -i 's/enabled = false/enabled = true/g' "$HOMEDIR"/config/app.toml
+        sed -i 's/create_empty_blocks = true/create_empty_blocks = false/g' "$CONFIG"
+        sed -i 's/prometheus = false/prometheus = true/' "$CONFIG"
+        sed -i 's/prometheus-retention-time  = "0"/prometheus-retention-time  = "1000000000000"/g' "$CONFIG"
+        sed -i 's/enabled = false/enabled = true/g' "$CONFIG"
     fi
 
     if [[ $1 == "pending" ]]; then
         echo "pending mode is on, please wait for the first block committed."
         if [[ $OSTYPE == "darwin"* ]]; then
-            sed -i '' 's/create_empty_blocks_interval = "0s"/create_empty_blocks_interval = "30s"/g' "$HOMEDIR"/config/config.toml
-            sed -i '' 's/timeout_propose = "3s"/timeout_propose = "30s"/g' "$HOMEDIR"/config/config.toml
-            sed -i '' 's/timeout_propose_delta = "500ms"/timeout_propose_delta = "5s"/g' "$HOMEDIR"/config/config.toml
-            sed -i '' 's/timeout_prevote = "1s"/timeout_prevote = "10s"/g' "$HOMEDIR"/config/config.toml
-            sed -i '' 's/timeout_prevote_delta = "500ms"/timeout_prevote_delta = "5s"/g' "$HOMEDIR"/config/config.toml
-            sed -i '' 's/timeout_precommit = "1s"/timeout_precommit = "10s"/g' "$HOMEDIR"/config/config.toml
-            sed -i '' 's/timeout_precommit_delta = "500ms"/timeout_precommit_delta = "5s"/g' "$HOMEDIR"/config/config.toml
-            sed -i '' 's/timeout_commit = "5s"/timeout_commit = "150s"/g' "$HOMEDIR"/config/config.toml
-            sed -i '' 's/timeout_broadcast_tx_commit = "10s"/timeout_broadcast_tx_commit = "150s"/g' "$HOMEDIR"/config/config.toml
+            sed -i '' 's/create_empty_blocks_interval = "0s"/create_empty_blocks_interval = "30s"/g' "$CONFIG"
+            sed -i '' 's/timeout_propose = "3s"/timeout_propose = "30s"/g' "$CONFIG"
+            sed -i '' 's/timeout_propose_delta = "500ms"/timeout_propose_delta = "5s"/g' "$CONFIG"
+            sed -i '' 's/timeout_prevote = "1s"/timeout_prevote = "10s"/g' "$CONFIG"
+            sed -i '' 's/timeout_prevote_delta = "500ms"/timeout_prevote_delta = "5s"/g' "$CONFIG"
+            sed -i '' 's/timeout_precommit = "1s"/timeout_precommit = "10s"/g' "$CONFIG"
+            sed -i '' 's/timeout_precommit_delta = "500ms"/timeout_precommit_delta = "5s"/g' "$CONFIG"
+            sed -i '' 's/timeout_commit = "5s"/timeout_commit = "150s"/g' "$CONFIG"
+            sed -i '' 's/timeout_broadcast_tx_commit = "10s"/timeout_broadcast_tx_commit = "150s"/g' "$CONFIG"
         else
-            sed -i 's/create_empty_blocks_interval = "0s"/create_empty_blocks_interval = "30s"/g' "$HOMEDIR"/config/config.toml
-            sed -i 's/timeout_propose = "3s"/timeout_propose = "30s"/g' "$HOMEDIR"/config/config.toml
-            sed -i 's/timeout_propose_delta = "500ms"/timeout_propose_delta = "5s"/g' "$HOMEDIR"/config/config.toml
-            sed -i 's/timeout_prevote = "1s"/timeout_prevote = "10s"/g' "$HOMEDIR"/config/config.toml
-            sed -i 's/timeout_prevote_delta = "500ms"/timeout_prevote_delta = "5s"/g' "$HOMEDIR"/.xtechain/config/config.toml
-            sed -i 's/timeout_precommit = "1s"/timeout_precommit = "10s"/g' "$HOMEDIR"/config/config.toml
-            sed -i 's/timeout_precommit_delta = "500ms"/timeout_precommit_delta = "5s"/g' "$HOMEDIR"/config/config.toml
-            sed -i 's/timeout_commit = "5s"/timeout_commit = "150s"/g' "$HOMEDIR"/config/config.toml
-            sed -i 's/timeout_broadcast_tx_commit = "10s"/timeout_broadcast_tx_commit = "150s"/g' "$HOMEDIR"/config/config.toml
+            sed -i 's/create_empty_blocks_interval = "0s"/create_empty_blocks_interval = "30s"/g' "$CONFIG"
+            sed -i 's/timeout_propose = "3s"/timeout_propose = "30s"/g' "$CONFIG"
+            sed -i 's/timeout_propose_delta = "500ms"/timeout_propose_delta = "5s"/g' "$CONFIG"
+            sed -i 's/timeout_prevote = "1s"/timeout_prevote = "10s"/g' "$CONFIG"
+            sed -i 's/timeout_prevote_delta = "500ms"/timeout_prevote_delta = "5s"/g' "$CONFIG"
+            sed -i 's/timeout_precommit = "1s"/timeout_precommit = "10s"/g' "$CONFIG"
+            sed -i 's/timeout_precommit_delta = "500ms"/timeout_precommit_delta = "5s"/g' "$CONFIG"
+            sed -i 's/timeout_commit = "5s"/timeout_commit = "150s"/g' "$CONFIG"
+            sed -i 's/timeout_broadcast_tx_commit = "10s"/timeout_broadcast_tx_commit = "150s"/g' "$CONFIG"
         fi
     fi
 fi
